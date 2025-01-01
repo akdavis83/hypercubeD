@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Hypercube Drawer</title>
+<style>
+    body { text-align: center; }
+    canvas { border: 1px solid black; }
+</style>
+</head>
+<body>
+  <h1>Hypercube Drawer</h1>
+  <button onclick="drawHypercube(1)">H1</button>
+  <button onclick="drawHypercube(2)">H2</button>
+  <button onclick="drawHypercube(3)">H3</button>
+  <button onclick="drawHypercube(4)">H4</button>
+  <button onclick="drawHypercube(5)">H5</button>
+
+  <canvas id="hypercubeCanvas" width="600" height="400"></canvas>
+  <script>
+    const canvas = document.getElementById('hypercubeCanvas');
+    const ctx = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const scale = 80;
+    const dotRadius = 3;
+    
+    // Generate vertices and edges for an n-dimensional hypercube
+    function generateHypercube(n) {
+      let vertices = [];
+      let edges = [];
+
+      const numVertices = 2 ** n;
+      for (let i = 0; i < numVertices; i++) {
+          let coords = [];
+          let temp = i;
+          for (let d = 0; d < n; d++) {
+              coords.push(temp % 2);
+              temp = Math.floor(temp / 2);
+          }
+          vertices.push(coords);
+      }
+
+      for (let i = 0; i < numVertices; i++) {
+          for (let j = i + 1; j < numVertices; j++) {
+              let diff = 0;
+              for (let k = 0; k < n; k++) {
+                  if (vertices[i][k] !== vertices[j][k]) {
+                      diff++;
+                  }
+              }
+              if (diff === 1) {
+                  edges.push([i, j]);
+              }
+          }
+      }
+
+      return { vertices, edges };
+    }
+    
+    // Project n-dimensional vertices into 2D space
+    function projectVertex(vertex, dimension) {
+      let x = 0;
+      let y = 0;
+      let z = 0;
+
+      // Use the first three dimensions for x, y, z
+      if (dimension >= 1) x += (vertex[0] - 0.5);
+      if (dimension >= 2) y += (vertex[1] - 0.5);
+      if (dimension >= 3) z += (vertex[2] - 0.5);
+
+      // Use additional dimensions for perspective distortion
+      if (dimension >= 4) {
+          x += (vertex[3] - 0.5) * 0.5;
+          y += (vertex[3] - 0.5) * 0.5;
+      }
+      if (dimension >= 5) {
+          x += (vertex[4] - 0.5) * 0.3;
+          y += (vertex[4] - 0.5) * 0.3;
+      }
+
+      // Apply a simple perspective effect
+      const perspective = 1 / (1 + z * 0.5);
+      return { x: x * perspective, y: y * perspective };
+    }
+
+    // Draw an n-dimensional hypercube
+    function drawHypercube(dimension) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const hypercube = generateHypercube(dimension);
+      const { vertices, edges } = hypercube;
+
+      // Draw edges
+      ctx.beginPath();
+      for (const [vertex1Index, vertex2Index] of edges) {
+          const vertex1 = projectVertex(vertices[vertex1Index], dimension);
+          const vertex2 = projectVertex(vertices[vertex2Index], dimension);
+          
+          const x1 = centerX + vertex1.x * scale;
+          const y1 = centerY - vertex1.y * scale;
+          const x2 = centerX + vertex2.x * scale;
+          const y2 = centerY - vertex2.y * scale;
+          
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+      }
+      ctx.stroke();
+
+      // Draw vertices
+      for (const vertex of vertices) {
+          const projectedVertex = projectVertex(vertex, dimension);
+          const x = centerX + projectedVertex.x * scale;
+          const y = centerY - projectedVertex.y * scale;
+
+          ctx.beginPath();
+          ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+          ctx.fill();
+      }
+    }
+  </script>
+</body>
+</html>
